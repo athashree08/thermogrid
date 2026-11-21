@@ -1,14 +1,17 @@
 # ThermoGrid
+### Geospatial Weather Intelligence Platform
 
-### Geospatial Weather Data Pipeline
+**ThermoGrid** is a Python-based geospatial weather data engineering project that collects, processes, enriches, aggregates, and validates hourly weather observations for selected Indian cities.
 
-ThermoGrid is a Python-based data engineering project that collects hourly weather observations for selected Indian cities, transforms them into structured datasets, enriches them with geospatial identifiers, aggregates observations, stores the results in partitioned Parquet format, and validates data quality.
+The project combines an automated data processing pipeline with an interactive Streamlit dashboard to explore weather observations, visualize geospatial data, and inspect data quality.
 
-The pipeline is orchestrated using Apache Airflow.
+**Live Dashboard:** https://thermogrid.streamlit.app/
 
-## Project Overview
+---
 
-The current prototype processes weather data for five cities:
+## Overview
+
+ThermoGrid currently processes weather observations for five Indian cities:
 
 - Pune
 - Mumbai
@@ -16,61 +19,82 @@ The current prototype processes weather data for five cities:
 - Hyderabad
 - Delhi
 
-Weather data is collected through the Open-Meteo API.
+Weather data is collected through the [Open-Meteo API](https://open-meteo.com/).
+
+The pipeline transforms raw weather responses into structured datasets, generates geohash identifiers using API-returned grid coordinates, performs geospatial aggregation, stores processed data in CSV and partitioned Parquet formats, and validates data quality.
+
+An interactive Streamlit application provides a visual interface for exploring the processed datasets.
 
 ## Architecture
 
 ```text
-Open-Meteo API
-      |
-      v
-Weather Ingestion
-      |
-      v
-Raw JSON Storage
-      |
-      v
-Data Transformation
-      |
-      v
-Geohash Generation
-      |
-      v
-Geospatial Aggregation
-      |
-      v
-Partitioned Parquet Storage & Quality Validation
-      |
-      v
-ThermoGrid Streamlit Intelligence Dashboard
-(Overview | Weather Explorer | Geospatial Analytics | Quality | Pipeline Monitor)
+                  Open-Meteo API
+                         |
+                         v
+                 Weather Ingestion
+                         |
+                         v
+                  Raw JSON Storage
+                         |
+                         v
+                 Data Transformation
+                         |
+                         v
+                  Geohash Generation
+                         |
+                         v
+                Geospatial Aggregation
+                         |
+                         v
+                Partitioned Parquet
+                         |
+                         v
+                 Data Quality Checks
+                         |
+                         v
+                 Processed Datasets
+                         |
+                         v
+                Streamlit Dashboard
 ```
 
-Apache Airflow orchestrates the workflow.
+Apache Airflow orchestrates the data processing workflow.
+
+## Interactive Dashboard
+
+**Live application:** https://thermogrid.streamlit.app/
+
+The dashboard provides an interactive interface for exploring the processed weather datasets.
+
+Its intended capabilities include:
+
+- **Weather Overview:** Summary metrics and weather trends across monitored cities.
+- **Weather Explorer:** City-wise weather observations and interactive geographic visualization.
+- **Geospatial Analytics:** Exploration of geohashes, grid coordinates, and aggregated weather observations.
+- **Data Quality:** Inspection of missing values, duplicates, invalid records, and validation results.
+- **Pipeline Monitor:** Overview of the Airflow pipeline stages and execution information where available.
+
+The dashboard uses processed datasets rather than requiring a continuously running local pipeline.
 
 ## Technology Stack
 
-| Component | Technology |
+| Component | Technologies |
 |---|---|
 | Programming Language | Python |
-| Weather Data Source | Open-Meteo API |
+| Data Ingestion | Open-Meteo API, Requests |
 | Data Processing | Pandas |
-| Geospatial Indexing | Geohash |
-| Storage Format | Apache Parquet |
-| Compression | Snappy |
-| Workflow Orchestration | Apache Airflow 3.3.2 |
-| Frontend Dashboard | Streamlit 1.67+ |
-| Data Visualization | Plotly |
-| Geospatial Mapping | PyDeck / Folium |
+| Geospatial Processing | Geohash |
+| Data Storage | CSV, Apache Parquet, PyArrow |
+| Workflow Orchestration | Apache Airflow |
+| Dashboard | Streamlit |
+| Data Visualization | Plotly, PyDeck |
 | Testing | Pytest |
+| Development Environment | WSL Ubuntu |
 
 ## Project Structure
 
 ```text
 thermogrid/
-│
-├── .streamlit/
-│   └── config.toml
 │
 ├── config/
 │   └── locations.json
@@ -80,28 +104,18 @@ thermogrid/
 │
 ├── dashboard/
 │   ├── app.py
-│   ├── assets/
-│   │   └── styles.css
 │   ├── pages/
-│   │   ├── 1_Overview.py
-│   │   ├── 2_Weather_Explorer.py
-│   │   ├── 3_Geospatial_Analytics.py
-│   │   ├── 4_Data_Quality.py
-│   │   └── 5_Pipeline_Monitor.py
-│   └── utils/
-│       ├── __init__.py
-│       ├── charts.py
-│       ├── data_loader.py
-│       ├── map_utils.py
-│       └── metrics.py
+│   ├── utils/
+│   └── assets/
 │
 ├── data/
 │   ├── raw/
 │   ├── processed/
-│   │   ├── parquet/
-│   │   ├── weather_aggregated.csv
 │   │   ├── weather_catalog.csv
-│   │   └── weather_geospatial.csv
+│   │   ├── weather_geospatial.csv
+│   │   ├── weather_aggregated.csv
+│   │   └── parquet/
+│   │
 │   └── reports/
 │       └── data_quality_report.json
 │
@@ -121,95 +135,109 @@ thermogrid/
 │       └── data_quality.py
 │
 ├── tests/
-│   ├── test_dashboard.py
 │   └── test_processing.py
 │
-├── streamlit_app.py
-├── scripts/
 ├── requirements.txt
 ├── pytest.ini
 ├── .gitignore
 └── README.md
 ```
 
-## Pipeline Workflow
+*The dashboard directory and entry-point filenames should reflect the final implementation in the repository.*
+
+## Data Pipeline
+
+The pipeline consists of six sequential stages orchestrated using Apache Airflow.
 
 ### 1. Weather Ingestion
 
-- Fetches hourly weather observations from Open-Meteo.
+- Retrieves hourly weather observations from Open-Meteo.
 - Collects temperature, relative humidity, precipitation, and wind speed.
-- Uses retry logic for failed API requests.
-- Saves raw API responses as JSON files.
+- Stores raw API responses as JSON files.
+- Implements retry handling for API requests.
 
 ### 2. Data Transformation
 
-- Reads raw JSON files.
-- Converts nested hourly observations into tabular records.
-- Standardizes column names.
-- Removes duplicate city and timestamp records.
-- Saves the weather catalog as CSV.
+- Reads raw JSON responses.
+- Flattens hourly observations into structured records.
+- Standardizes weather column names and units.
+- Removes duplicate city-time observations.
 
-### 3. Geospatial Processing
+### 3. Geospatial Enrichment
 
-- Generates Geohash identifiers using API-returned grid coordinates.
-- Adds geospatial identifiers to weather observations.
+- Uses API-returned grid coordinates.
+- Generates geohash identifiers at precision 6.
+- Enriches weather observations with spatial identifiers.
 
-### 4. Aggregation
+### 4. Geospatial Aggregation
 
-- Groups observations by Geohash and timestamp.
-- Calculates average weather measurements and associated spatial attributes.
+- Groups observations by geohash and timestamp.
+- Calculates aggregated weather measurements and coordinate values.
 
 ### 5. Parquet Storage
 
-- Stores processed observations in Apache Parquet format.
-- Uses Snappy compression.
+- Stores processed observations in Snappy-compressed Parquet format.
 - Partitions output by year, month, and day.
 
 ### 6. Data Quality Validation
 
-Checks include:
+Checks for:
+- Missing required columns.
+- Null values.
+- Duplicate records.
+- Invalid temperature values.
+- Humidity outside the valid range.
+- Negative precipitation and wind speed.
+- Invalid geographic coordinates.
 
-- Required columns
-- Missing values
-- Duplicate records
-- Temperature range
-- Humidity range
-- Negative precipitation
-- Negative wind speed
-- Coordinate validity
-
-A JSON report is generated with validation results.
+The validation results are saved as a JSON report.
 
 ## Airflow Orchestration
 
-The DAG is named:
+The pipeline is orchestrated through the following Airflow DAG:
 
 `thermogrid_weather_pipeline`
 
-It contains six sequential tasks:
+| Task | Description |
+|---|---|
+| weather_ingestion | Collects weather observations |
+| transform_weather | Transforms raw JSON data |
+| generate_geohash | Generates geospatial identifiers |
+| aggregate_weather | Aggregates weather observations |
+| store_parquet | Writes partitioned Parquet files |
+| validate_data | Runs data quality checks |
 
-1. `weather_ingestion`
-2. `transform_weather`
-3. `generate_geohash`
-4. `aggregate_weather`
-5. `store_parquet`
-6. `validate_data`
+Tasks execute sequentially, with retry handling configured for failures.
 
-Each task executes its corresponding Python module.
+## Prototype Results
 
-## Installation and Setup
+The current prototype was tested using weather observations from five cities.
+
+| Metric | Result |
+|---|---:|
+| Cities monitored | 5 |
+| Final weather records | 120 |
+| Duplicate records removed during transformation | 120 |
+| Final duplicate records | 0 |
+| Missing values in validated fields | 0 |
+| Data quality validation | Passed |
+
+The dataset represents one day of hourly observations for five API grid points.
+
+## Getting Started
 
 ### Prerequisites
 
-- Ubuntu or another Linux environment
 - Python 3.12
-- pip or uv
-- Apache Airflow 3.3.2
+- Git
+- pip
+- Ubuntu / WSL or another compatible Linux environment
 
 ### 1. Clone the repository
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/athashree08/thermogrid.git
+
 cd thermogrid
 ```
 
@@ -217,14 +245,8 @@ cd thermogrid
 
 ```bash
 python3.12 -m venv .venv
+
 source .venv/bin/activate
-```
-
-Alternatively, use uv:
-
-```bash
-uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
 ### 3. Install dependencies
@@ -233,16 +255,21 @@ uv pip install --python .venv/bin/python -r requirements.txt
 pip install -r requirements.txt
 ```
 
-### 4. Run the pipeline manually
+### 4. Run the data pipeline
 
-Execute the modules in sequence from the project root:
+Execute the pipeline modules sequentially:
 
 ```bash
 python src/ingestion/weather_ingestion.py
+
 python src/processing/transform.py
+
 python src/processing/geospatial.py
+
 python src/processing/aggregation.py
+
 python src/storage/parquet_storage.py
+
 python src/validation/data_quality.py
 ```
 
@@ -252,145 +279,72 @@ python src/validation/data_quality.py
 pytest -v
 ```
 
-### 6. Launch the ThermoGrid Dashboard
+### 6. Launch the dashboard
 
-Launch the interactive dashboard locally:
+If the Streamlit entry point is `streamlit_app.py`:
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-The platform will open automatically at `http://localhost:8501`.
+The application will be available locally at:
 
-## ThermoGrid Dashboard
-
-*Geospatial Weather Intelligence Platform*
-
-ThermoGrid includes a multi-page interactive analytics platform built with Streamlit, Plotly, PyDeck, and Folium. It connects directly to the processed datasets (`weather_catalog.csv`, `weather_geospatial.csv`, `weather_aggregated.csv`), Parquet lake partitions, and data quality validation reports.
-
-### Dashboard Sections
-
-1. **Overview (`1_Overview.py`):**
-   - Live dynamic KPI cards: Total Observations (120), Monitored Cities (5), Latest Timestamp (UTC), Validation Status (PASSED 100%), Mean Temperature, Humidity, Precipitation, Wind Speed.
-   - 24-hour multi-city temperature trajectories and diurnal cycles.
-   - City min/avg/max temperature comparison and humidity variation charts.
-   - Diurnal atmospheric matrix heatmap across monitored cities.
-   - Raw observation catalog explorer with text search and real-time filtering.
-   - Prominent notice documenting the historical 24-hour prototype nature of the dataset.
-
-2. **Weather Explorer (`2_Weather_Explorer.py`):**
-   - High-performance interactive map of India with actual model grid coordinates.
-   - Dual map engines: 3D PyDeck DeckGL with elevation extrusion columns, or 2D OpenStreetMap Folium.
-   - Marker color-coding based on temperature gradients (cyan to crimson).
-   - City node selector (Pune, Mumbai, Bengaluru, Hyderabad, Delhi) with deep-dive stats.
-   - Time-series comparison comparing individual city metrics against the 5-city national baseline.
-   - Complete 24-hour tabular observation log.
-
-3. **Geospatial Analytics (`3_Geospatial_Analytics.py`):**
-   - Precision-6 Geohash distribution analysis (~±0.61 km spatial resolution).
-   - Numerical Weather Model Grid Snapping: Detailed comparison of requested user coordinates vs API numerical grid points and approximate distance offsets.
-   - Weather metric distribution by Geohash cell using box plots.
-   - Verification of geospatial aggregation logic (`weather_aggregated.csv` vs `weather_geospatial.csv`).
-   - Interactive individual Geohash inspector.
-   - Architecture explainer detailing base-32 spatial indexing principles and prototype grid constraints.
-
-4. **Data Quality & Governance (`4_Data_Quality.py`):**
-   - Dynamic ingestion of `data/reports/data_quality_report.json`.
-   - Comprehensive audit summary: Schema completeness, null counts, duplicate key checks, physical temperature/humidity bounds, and non-negativity checks.
-   - "Execute Live Quality Audit" button to trigger `src/validation/data_quality.py` validation logic live on active records.
-   - Full column-level missing value breakdown and raw JSON payload inspector.
-
-5. **Pipeline Monitor (`5_Pipeline_Monitor.py`):**
-   - Complete architecture overview of the `thermogrid_weather_pipeline` Apache Airflow DAG.
-   - Real-time Airflow API connectivity detector (runs in decoupled data-lake mode if Airflow is offline).
-   - Live filesystem verification of stage artifacts: checks existence, file size, last modified time, and record count for each of the 6 pipeline tasks.
-   - Detailed task specifications for Ingestion, Transformation, Geospatial Indexing, Aggregation, Storage, and Validation.
-   - Apache Parquet storage inspector with Arrow schema viewer and Snappy partition metadata.
-
-### Deployment on Streamlit Community Cloud
-
-The dashboard is designed for zero-config public deployment on **Streamlit Community Cloud**:
-
-1. Push this repository to GitHub.
-2. Sign in to [share.streamlit.io](https://share.streamlit.io).
-3. Select **New App** and configure:
-   - **Repository:** `<YOUR_GITHUB_USERNAME>/thermogrid`
-   - **Branch:** `main` (or active branch)
-   - **Main file path:** `streamlit_app.py`
-4. Click **Deploy**. The app will automatically install dependencies from `requirements.txt` and launch without requiring external database connections, active Airflow instances, or private API keys.
-
-## Airflow Setup
-
-Airflow is installed separately from the project's Python virtual environment.
-
-Activate the Airflow environment:
-
-```bash
-source ~/airflow_venv/bin/activate
+```text
+http://localhost:8501
 ```
 
-Configure the Airflow home and DAG directory:
+## Deployment
 
-```bash
-export AIRFLOW_HOME=~/airflow
-export AIRFLOW__CORE__DAGS_FOLDER="$HOME/projects/thermogrid/dags"
-export AIRFLOW__API__PORT=8081
-export AIRFLOW__CORE__EXECUTION_API_SERVER_URL="http://localhost:8081/execution/"
-```
+ThermoGrid's interactive dashboard is deployed using **Streamlit Community Cloud**.
 
-Start Airflow:
+Live application:
 
-```bash
-airflow standalone
-```
+https://thermogrid.streamlit.app/
 
-Open the Airflow UI:
+The deployed application uses the processed datasets committed to the repository.
 
-http://127.0.0.1:8081/
+The dashboard does not require a continuously running local Airflow scheduler to display the existing processed results.
 
-Unpause `thermogrid_weather_pipeline` and trigger a DAG run.
+## Current Limitations
 
-**Note:** The execution API URL must match the API server port configured above.
+This is an experimental prototype, not a production-scale weather intelligence system.
 
-## Current Prototype Results
+Current limitations include:
 
-The current five-city test run produced:
-
-| Metric | Result |
-|---|---:|
-| Cities processed | 5 |
-| Weather observations | 120 |
-| Duplicate records removed during transformation | 120 |
-| Final records | 120 |
-| Missing values | 0 |
-| Duplicate records after aggregation | 0 |
-| Data quality validation | Passed |
-
-The current dataset represents a single day's observations for five city-level API grid points.
-
-## Limitations
-
-- The current prototype covers five cities.
-- Each city is represented by one API-returned weather grid point.
-- The current test dataset covers one date.
-- Aggregation currently operates on a small number of spatial points.
-- Storage currently performs a full rebuild rather than incremental upserts.
-- Historical weather trends and forecasting are not implemented.
+- Coverage is restricted to five Indian cities.
+- Each city currently uses one API-returned grid point.
+- The current dataset covers one day of observations.
+- Geospatial aggregation is limited by the available grid-point coverage.
+- Parquet storage currently performs a full rebuild rather than incremental upserts.
+- The deployed dashboard displays available processed observations; it should not be interpreted as a continuously updating live weather service.
+- Airflow orchestration and dashboard deployment operate separately.
 
 ## Future Improvements
 
-- Expand geographic coverage.
-- Integrate additional weather and environmental datasets.
-- Implement incremental ingestion and storage.
-- Add historical data processing.
-- Improve spatial aggregation using multiple grid points.
-- Add monitoring, logging, and automated failure alerts.
-- Explore scalable storage and processing architectures.
+- Expand geographic coverage across India.
+- Integrate historical rainfall datasets.
+- Implement incremental data ingestion and storage.
+- Introduce more extensive geospatial aggregation.
+- Improve automated data quality monitoring.
+- Add longer-term weather trend analysis.
+- Integrate scheduled pipeline execution with the deployed application.
 
 ## Data Source
 
-Weather data: [Open-Meteo](https://open-meteo.com/)
+Weather observations are obtained from:
 
-## Disclaimer
+[Open-Meteo Weather API](https://open-meteo.com/)
 
-ThermoGrid is an educational data engineering prototype. It is not intended for operational weather forecasting or safety-critical applications.
+## Author
+
+**Athashree Badokar**
+
+B.Tech — Data Science
+
+GitHub: [@athashree08](https://github.com/athashree08)
+
+Project Repository: [ThermoGrid](https://github.com/athashree08/thermogrid)
+
+---
+
+*ThermoGrid — Turning weather observations into structured geospatial intelligence.*
