@@ -39,10 +39,11 @@ Geohash Generation
 Geospatial Aggregation
       |
       v
-Partitioned Parquet Storage
+Partitioned Parquet Storage & Quality Validation
       |
       v
-Data Quality Validation
+ThermoGrid Streamlit Intelligence Dashboard
+(Overview | Weather Explorer | Geospatial Analytics | Quality | Pipeline Monitor)
 ```
 
 Apache Airflow orchestrates the workflow.
@@ -58,6 +59,9 @@ Apache Airflow orchestrates the workflow.
 | Storage Format | Apache Parquet |
 | Compression | Snappy |
 | Workflow Orchestration | Apache Airflow 3.3.2 |
+| Frontend Dashboard | Streamlit 1.67+ |
+| Data Visualization | Plotly |
+| Geospatial Mapping | PyDeck / Folium |
 | Testing | Pytest |
 
 ## Project Structure
@@ -65,16 +69,41 @@ Apache Airflow orchestrates the workflow.
 ```text
 thermogrid/
 │
+├── .streamlit/
+│   └── config.toml
+│
 ├── config/
 │   └── locations.json
 │
 ├── dags/
 │   └── thermogrid_pipeline.py
 │
+├── dashboard/
+│   ├── app.py
+│   ├── assets/
+│   │   └── styles.css
+│   ├── pages/
+│   │   ├── 1_Overview.py
+│   │   ├── 2_Weather_Explorer.py
+│   │   ├── 3_Geospatial_Analytics.py
+│   │   ├── 4_Data_Quality.py
+│   │   └── 5_Pipeline_Monitor.py
+│   └── utils/
+│       ├── __init__.py
+│       ├── charts.py
+│       ├── data_loader.py
+│       ├── map_utils.py
+│       └── metrics.py
+│
 ├── data/
 │   ├── raw/
 │   ├── processed/
+│   │   ├── parquet/
+│   │   ├── weather_aggregated.csv
+│   │   ├── weather_catalog.csv
+│   │   └── weather_geospatial.csv
 │   └── reports/
+│       └── data_quality_report.json
 │
 ├── src/
 │   ├── ingestion/
@@ -92,8 +121,10 @@ thermogrid/
 │       └── data_quality.py
 │
 ├── tests/
+│   ├── test_dashboard.py
 │   └── test_processing.py
 │
+├── streamlit_app.py
 ├── scripts/
 ├── requirements.txt
 ├── pytest.ini
@@ -220,6 +251,73 @@ python src/validation/data_quality.py
 ```bash
 pytest -v
 ```
+
+### 6. Launch the ThermoGrid Dashboard
+
+Launch the interactive dashboard locally:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+The platform will open automatically at `http://localhost:8501`.
+
+## ThermoGrid Dashboard
+
+*Geospatial Weather Intelligence Platform*
+
+ThermoGrid includes a multi-page interactive analytics platform built with Streamlit, Plotly, PyDeck, and Folium. It connects directly to the processed datasets (`weather_catalog.csv`, `weather_geospatial.csv`, `weather_aggregated.csv`), Parquet lake partitions, and data quality validation reports.
+
+### Dashboard Sections
+
+1. **Overview (`1_Overview.py`):**
+   - Live dynamic KPI cards: Total Observations (120), Monitored Cities (5), Latest Timestamp (UTC), Validation Status (PASSED 100%), Mean Temperature, Humidity, Precipitation, Wind Speed.
+   - 24-hour multi-city temperature trajectories and diurnal cycles.
+   - City min/avg/max temperature comparison and humidity variation charts.
+   - Diurnal atmospheric matrix heatmap across monitored cities.
+   - Raw observation catalog explorer with text search and real-time filtering.
+   - Prominent notice documenting the historical 24-hour prototype nature of the dataset.
+
+2. **Weather Explorer (`2_Weather_Explorer.py`):**
+   - High-performance interactive map of India with actual model grid coordinates.
+   - Dual map engines: 3D PyDeck DeckGL with elevation extrusion columns, or 2D OpenStreetMap Folium.
+   - Marker color-coding based on temperature gradients (cyan to crimson).
+   - City node selector (Pune, Mumbai, Bengaluru, Hyderabad, Delhi) with deep-dive stats.
+   - Time-series comparison comparing individual city metrics against the 5-city national baseline.
+   - Complete 24-hour tabular observation log.
+
+3. **Geospatial Analytics (`3_Geospatial_Analytics.py`):**
+   - Precision-6 Geohash distribution analysis (~±0.61 km spatial resolution).
+   - Numerical Weather Model Grid Snapping: Detailed comparison of requested user coordinates vs API numerical grid points and approximate distance offsets.
+   - Weather metric distribution by Geohash cell using box plots.
+   - Verification of geospatial aggregation logic (`weather_aggregated.csv` vs `weather_geospatial.csv`).
+   - Interactive individual Geohash inspector.
+   - Architecture explainer detailing base-32 spatial indexing principles and prototype grid constraints.
+
+4. **Data Quality & Governance (`4_Data_Quality.py`):**
+   - Dynamic ingestion of `data/reports/data_quality_report.json`.
+   - Comprehensive audit summary: Schema completeness, null counts, duplicate key checks, physical temperature/humidity bounds, and non-negativity checks.
+   - "Execute Live Quality Audit" button to trigger `src/validation/data_quality.py` validation logic live on active records.
+   - Full column-level missing value breakdown and raw JSON payload inspector.
+
+5. **Pipeline Monitor (`5_Pipeline_Monitor.py`):**
+   - Complete architecture overview of the `thermogrid_weather_pipeline` Apache Airflow DAG.
+   - Real-time Airflow API connectivity detector (runs in decoupled data-lake mode if Airflow is offline).
+   - Live filesystem verification of stage artifacts: checks existence, file size, last modified time, and record count for each of the 6 pipeline tasks.
+   - Detailed task specifications for Ingestion, Transformation, Geospatial Indexing, Aggregation, Storage, and Validation.
+   - Apache Parquet storage inspector with Arrow schema viewer and Snappy partition metadata.
+
+### Deployment on Streamlit Community Cloud
+
+The dashboard is designed for zero-config public deployment on **Streamlit Community Cloud**:
+
+1. Push this repository to GitHub.
+2. Sign in to [share.streamlit.io](https://share.streamlit.io).
+3. Select **New App** and configure:
+   - **Repository:** `<YOUR_GITHUB_USERNAME>/thermogrid`
+   - **Branch:** `main` (or active branch)
+   - **Main file path:** `streamlit_app.py`
+4. Click **Deploy**. The app will automatically install dependencies from `requirements.txt` and launch without requiring external database connections, active Airflow instances, or private API keys.
 
 ## Airflow Setup
 

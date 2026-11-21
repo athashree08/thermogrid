@@ -1,6 +1,11 @@
-requests
-pandas
-pyarrow
-geohash2
-python-dotenv
-pytest
+requests>=2.31.0
+pandas>=2.2.0
+pyarrow>=15.0.0
+geohash2>=1.1
+python-dotenv>=1.0.0
+pytest>=8.0.0
+streamlit>=1.35.0
+plotly>=5.20.0
+pydeck>=0.8.0
+folium>=0.16.0
+streamlit-folium>=0.20.0
