@@ -1,0 +1,6 @@
+requests
+pandas
+pyarrow
+geohash2
+python-dotenv
+pytest

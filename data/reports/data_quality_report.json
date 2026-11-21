@@ -1,0 +1,22 @@
+{
+    "missing_columns": [],
+    "null_counts": {
+        "geohash": 0,
+        "timestamp": 0,
+        "temperature_c": 0,
+        "humidity_percent": 0,
+        "precipitation_mm": 0,
+        "wind_speed_kmh": 0,
+        "grid_latitude": 0,
+        "grid_longitude": 0,
+        "elevation_m": 0
+    },
+    "duplicate_records": 0,
+    "invalid_temperature": 0,
+    "invalid_humidity": 0,
+    "negative_precipitation": 0,
+    "negative_wind_speed": 0,
+    "invalid_coordinates": 0,
+    "total_records": 120,
+    "passed": true
+}

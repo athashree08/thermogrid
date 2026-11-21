@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Airflow
+airflow.cfg
+airflow.db
+airflow.db-*
+logs/
+
+# Generated raw data
+data/raw/
+
+# Generated Parquet files
+data/processed/parquet/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
